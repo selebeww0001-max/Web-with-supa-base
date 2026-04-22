@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useStore, Product, PaymentMethod } from '@/lib/store'
 import { X, Plus, Trash2, Edit2, Package, CreditCard, Image as ImageIcon, Upload } from 'lucide-react'
 import Image from 'next/image'
@@ -27,8 +27,8 @@ export function ModeratorPanel({ onClose }: ModeratorPanelProps) {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [editingPayment, setEditingPayment] = useState<PaymentMethod | null>(null)
   const [isAdding, setIsAdding] = useState(false)
-  const [saving, setSaving] = useState(false)
 
+  // Product form state
   const [productForm, setProductForm] = useState({
     name: '',
     price: 0,
@@ -37,6 +37,7 @@ export function ModeratorPanel({ onClose }: ModeratorPanelProps) {
     description: ''
   })
 
+  // Payment form state
   const [paymentForm, setPaymentForm] = useState({
     type: 'qris' as 'qris' | 'number',
     name: '',
@@ -66,46 +67,26 @@ export function ModeratorPanel({ onClose }: ModeratorPanelProps) {
     }
   }
 
-  const handleSaveProduct = async () => {
-    setSaving(true)
-    try {
-      if (editingProduct) {
-        await updateProduct(editingProduct.id, productForm)
-      } else {
-        await addProduct(productForm)
-      }
-      setProductForm({ name: '', price: 0, image: '', stock: '', description: '' })
-      setEditingProduct(null)
-      setIsAdding(false)
-    } finally {
-      setSaving(false)
+  const handleSaveProduct = () => {
+    if (editingProduct) {
+      updateProduct(editingProduct.id, productForm)
+    } else {
+      addProduct(productForm)
     }
+    setProductForm({ name: '', price: 0, image: '', stock: '', description: '' })
+    setEditingProduct(null)
+    setIsAdding(false)
   }
 
-  const handleSavePayment = async () => {
-    setSaving(true)
-    try {
-      if (editingPayment) {
-        await updatePaymentMethod(editingPayment.id, {
-          type: paymentForm.type,
-          name: paymentForm.name,
-          value: paymentForm.value,
-          qrisImage: paymentForm.qrisImage,
-        })
-      } else {
-        await addPaymentMethod({
-          type: paymentForm.type,
-          name: paymentForm.name,
-          value: paymentForm.value,
-          qrisImage: paymentForm.qrisImage,
-        })
-      }
-      setPaymentForm({ type: 'qris', name: '', value: '', qrisImage: '' })
-      setEditingPayment(null)
-      setIsAdding(false)
-    } finally {
-      setSaving(false)
+  const handleSavePayment = () => {
+    if (editingPayment) {
+      updatePaymentMethod(editingPayment.id, paymentForm)
+    } else {
+      addPaymentMethod(paymentForm)
     }
+    setPaymentForm({ type: 'qris', name: '', value: '', qrisImage: '' })
+    setEditingPayment(null)
+    setIsAdding(false)
   }
 
   const startEditProduct = (product: Product) => {
@@ -254,7 +235,7 @@ export function ModeratorPanel({ onClose }: ModeratorPanelProps) {
                         <div className="flex items-center gap-2">
                           <ImageIcon className="w-4 h-4 text-zinc-500" />
                           <span className="text-zinc-400 text-sm">
-                            {productForm.image ? 'Gambar dipilih ✓' : 'Upload gambar'}
+                            {productForm.image ? 'Gambar dipilih' : 'Upload gambar'}
                           </span>
                         </div>
                         <input
@@ -278,10 +259,9 @@ export function ModeratorPanel({ onClose }: ModeratorPanelProps) {
                   <div className="flex gap-3 mt-4">
                     <button
                       onClick={handleSaveProduct}
-                      disabled={saving}
-                      className="px-6 py-2 rounded-lg bg-white text-black font-medium hover:bg-zinc-200 transition-colors disabled:opacity-50"
+                      className="px-6 py-2 rounded-lg bg-white text-black font-medium hover:bg-zinc-200 transition-colors"
                     >
-                      {saving ? 'Menyimpan...' : 'Simpan'}
+                      Simpan
                     </button>
                     <button
                       onClick={() => { setIsAdding(false); setEditingProduct(null); }}
@@ -404,16 +384,13 @@ export function ModeratorPanel({ onClose }: ModeratorPanelProps) {
                         <label className="block text-zinc-400 text-sm mb-2">Gambar QRIS</label>
                         <label className="flex flex-col items-center justify-center w-full h-32 border border-dashed border-zinc-700 rounded-lg cursor-pointer hover:border-zinc-600 transition-colors bg-zinc-800">
                           {paymentForm.qrisImage ? (
-                            <div className="flex flex-col items-center gap-2">
-                              <Image
-                                src={paymentForm.qrisImage}
-                                alt="QRIS"
-                                width={80}
-                                height={80}
-                                className="object-contain"
-                              />
-                              <span className="text-zinc-400 text-xs">Gambar dipilih ✓</span>
-                            </div>
+                            <Image
+                              src={paymentForm.qrisImage}
+                              alt="QRIS"
+                              width={80}
+                              height={80}
+                              className="object-contain"
+                            />
                           ) : (
                             <div className="flex flex-col items-center">
                               <Upload className="w-8 h-8 text-zinc-600 mb-2" />
@@ -433,10 +410,9 @@ export function ModeratorPanel({ onClose }: ModeratorPanelProps) {
                   <div className="flex gap-3 mt-4">
                     <button
                       onClick={handleSavePayment}
-                      disabled={saving}
-                      className="px-6 py-2 rounded-lg bg-white text-black font-medium hover:bg-zinc-200 transition-colors disabled:opacity-50"
+                      className="px-6 py-2 rounded-lg bg-white text-black font-medium hover:bg-zinc-200 transition-colors"
                     >
-                      {saving ? 'Menyimpan...' : 'Simpan'}
+                      Simpan
                     </button>
                     <button
                       onClick={() => { setIsAdding(false); setEditingPayment(null); }}
@@ -487,4 +463,3 @@ export function ModeratorPanel({ onClose }: ModeratorPanelProps) {
     </motion.div>
   )
 }
-
