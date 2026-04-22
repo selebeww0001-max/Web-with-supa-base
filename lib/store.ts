@@ -110,7 +110,7 @@ export const useStore = create<StoreState>()(
         ])
         set({
           products: products.data || [],
-          paymentMethods: paymentMethods.data || [],
+          paymentMethods: (paymentMethods.data || []).map((m: Record<string, unknown>) => ({ ...m, qrisImage: m.qris_image })),
           orders: orders.data || [],
           messages: messages.data || [],
           reviews: reviews.data || [],
@@ -134,12 +134,18 @@ export const useStore = create<StoreState>()(
 
       // Payment Methods
       addPaymentMethod: async (method) => {
-        const { data } = await supabase.from('payment_methods').insert([method]).select().single()
-        if (data) set((s) => ({ paymentMethods: [...s.paymentMethods, data] }))
+        const payload = { type: method.type, name: method.name, value: method.value, qris_image: method.qrisImage || '' }
+        const { data } = await supabase.from('payment_methods').insert([payload]).select().single()
+        if (data) set((s) => ({ paymentMethods: [...s.paymentMethods, { ...data, qrisImage: data.qris_image }] }))
       },
       updatePaymentMethod: async (id, method) => {
-        const { data } = await supabase.from('payment_methods').update(method).eq('id', id).select().single()
-        if (data) set((s) => ({ paymentMethods: s.paymentMethods.map((m) => m.id === id ? data : m) }))
+        const payload: Record<string, unknown> = {}
+        if (method.type !== undefined) payload.type = method.type
+        if (method.name !== undefined) payload.name = method.name
+        if (method.value !== undefined) payload.value = method.value
+        if (method.qrisImage !== undefined) payload.qris_image = method.qrisImage
+        const { data } = await supabase.from('payment_methods').update(payload).eq('id', id).select().single()
+        if (data) set((s) => ({ paymentMethods: s.paymentMethods.map((m) => m.id === id ? { ...data, qrisImage: data.qris_image } : m) }))
       },
       deletePaymentMethod: async (id) => {
         await supabase.from('payment_methods').delete().eq('id', id)
@@ -186,3 +192,4 @@ export const useStore = create<StoreState>()(
     }
   )
 )
+
