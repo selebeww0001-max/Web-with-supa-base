@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Product, PaymentMethod, useStore } from '@/lib/store'
 import { X, Upload, ExternalLink, Check } from 'lucide-react'
@@ -12,7 +12,11 @@ interface CheckoutModalProps {
 }
 
 export function CheckoutModal({ product, onClose }: CheckoutModalProps) {
-  const { paymentMethods, addOrder } = useStore()
+  const { paymentMethods, addOrder, fetchAll } = useStore()
+
+  useEffect(() => {
+    fetchAll()
+  }, [])
   const [step, setStep] = useState<'payment' | 'upload' | 'success'>('payment')
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(null)
   const [telegramUsername, setTelegramUsername] = useState('')
@@ -262,3 +266,4 @@ export function CheckoutModal({ product, onClose }: CheckoutModalProps) {
     </AnimatePresence>
   )
 }
+
