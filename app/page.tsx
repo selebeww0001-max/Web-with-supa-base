@@ -14,7 +14,7 @@ import { BuyerInbox } from '@/components/buyer-inbox'
 import { Lock, Settings, MessageSquare, ExternalLink, ShoppingBag, Zap, Shield, Inbox } from 'lucide-react'
 
 export default function HomePage() {
-  const { products, isModeratorMode, orders } = useStore()
+  const { products, categories, isModeratorMode, orders, loading } = useStore()
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [showLogin, setShowLogin] = useState(false)
   const [showModeratorPanel, setShowModeratorPanel] = useState(false)
@@ -175,38 +175,82 @@ export default function HomePage() {
             <span className="text-zinc-600 text-sm">{products.length} produk tersedia</span>
           </motion.div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-            {products.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onClick={() => setSelectedProduct(product)}
-                isModeratorMode={isModeratorMode}
-                onEdit={() => {
-                  setShowModeratorPanel(true)
-                }}
-                onDelete={() => {
-                  if (confirm('Hapus produk ini?')) {
-                    useStore.getState().deleteProduct(product.id)
-                  }
-                }}
-              />
-            ))}
-          </div>
-
-          {products.length === 0 && (
-            <div className="text-center py-20">
-              <ShoppingBag className="w-16 h-16 text-zinc-800 mx-auto mb-4" />
-              <p className="text-zinc-600">Belum ada produk tersedia</p>
-              {isModeratorMode && (
-                <button
-                  onClick={() => setShowModeratorPanel(true)}
-                  className="mt-4 px-6 py-2 rounded-xl bg-white text-black font-medium hover:bg-zinc-200 transition-colors"
-                >
-                  Tambah Produk
-                </button>
-              )}
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-24 gap-4">
+              <div className="w-12 h-12 rounded-full border-4 border-zinc-700 border-t-white animate-spin" />
+              <p className="text-zinc-400 text-sm">Mohon tunggu, sedang memuat... 💫</p>
             </div>
+          ) : (
+            <>
+              {/* Produk tanpa kategori */}
+              {(() => {
+                const uncategorized = products.filter(p => !p.categoryId || p.categoryId === '')
+                if (uncategorized.length === 0 && categories.length > 0) return null
+                return (
+                  <div className="mb-12">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                      {uncategorized.map((product) => (
+                        <ProductCard
+                          key={product.id}
+                          product={product}
+                          onClick={() => setSelectedProduct(product)}
+                          isModeratorMode={isModeratorMode}
+                          onEdit={() => setShowModeratorPanel(true)}
+                          onDelete={() => { if (confirm('Hapus produk ini?')) useStore.getState().deleteProduct(product.id) }}
+                        />
+                      ))}
+                    </div>
+                    {uncategorized.length === 0 && categories.length === 0 && (
+                      <div className="text-center py-20">
+                        <ShoppingBag className="w-16 h-16 text-zinc-800 mx-auto mb-4" />
+                        <p className="text-zinc-600">Belum ada produk tersedia</p>
+                        {isModeratorMode && (
+                          <button onClick={() => setShowModeratorPanel(true)} className="mt-4 px-6 py-2 rounded-xl bg-white text-black font-medium hover:bg-zinc-200 transition-colors">
+                            Tambah Produk
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {/* Produk per kategori */}
+              {categories.map((category) => {
+                const catProducts = products.filter(p => p.categoryId === category.id)
+                return (
+                  <div key={category.id} className="mb-14">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-2xl font-bold text-white">{category.name}</h3>
+                      <span className="text-zinc-600 text-sm">{catProducts.length} produk</span>
+                    </div>
+                    {catProducts.length === 0 ? (
+                      <div className="text-center py-10 border border-dashed border-zinc-800 rounded-xl">
+                        <p className="text-zinc-600 text-sm">Belum ada produk di kategori ini</p>
+                        {isModeratorMode && (
+                          <button onClick={() => setShowModeratorPanel(true)} className="mt-3 px-4 py-2 rounded-lg bg-white text-black text-sm font-medium hover:bg-zinc-200 transition-colors">
+                            Tambah Produk
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                        {catProducts.map((product) => (
+                          <ProductCard
+                            key={product.id}
+                            product={product}
+                            onClick={() => setSelectedProduct(product)}
+                            isModeratorMode={isModeratorMode}
+                            onEdit={() => setShowModeratorPanel(true)}
+                            onDelete={() => { if (confirm('Hapus produk ini?')) useStore.getState().deleteProduct(product.id) }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </>
           )}
         </div>
       </section>
@@ -318,3 +362,4 @@ export default function HomePage() {
     </div>
   )
 }
+

@@ -2,6 +2,12 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { supabase } from './supabase'
 
+export interface Category {
+  id: string
+  name: string
+  order: number
+}
+
 export interface Product {
   id: string
   name: string
@@ -9,6 +15,7 @@ export interface Product {
   image: string
   stock: string
   description: string
+  categoryId: string
 }
 
 export interface PaymentMethod {
@@ -49,6 +56,7 @@ export interface Review {
 
 interface StoreState {
   isModeratorMode: boolean
+  categories: Category[]
   products: Product[]
   paymentMethods: PaymentMethod[]
   orders: Order[]
@@ -58,8 +66,11 @@ interface StoreState {
 
   login: (password: string) => boolean
   logout: () => void
-
   fetchAll: () => Promise<void>
+
+  addCategory: (name: string) => Promise<void>
+  deleteCategory: (id: string) => Promise<void>
+  updateCategory: (id: string, name: string) => Promise<void>
 
   addProduct: (product: Omit<Product, 'id'>) => Promise<void>
   updateProduct: (id: string, product: Partial<Product>) => Promise<void>
@@ -84,8 +95,9 @@ const MODERATOR_PASSWORD = '852013'
 
 export const useStore = create<StoreState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       isModeratorMode: false,
+      categories: [],
       products: [],
       paymentMethods: [],
       orders: [],
@@ -101,7 +113,8 @@ export const useStore = create<StoreState>()(
 
       fetchAll: async () => {
         set({ loading: true })
-        const [products, paymentMethods, orders, messages, reviews] = await Promise.all([
+        const [categories, products, paymentMethods, orders, messages, reviews] = await Promise.all([
+          supabase.from('categories').select('*').order('order'),
           supabase.from('products').select('*').order('created_at'),
           supabase.from('payment_methods').select('*').order('created_at'),
           supabase.from('orders').select('*').order('created_at', { ascending: false }),
@@ -109,8 +122,9 @@ export const useStore = create<StoreState>()(
           supabase.from('reviews').select('*').order('created_at', { ascending: false }),
         ])
         set({
-          products: products.data || [],
-          paymentMethods: (paymentMethods.data || []).map((m: Record<string, unknown>) => ({ ...m, qrisImage: m.qris_image })),
+          categories: (categories.data || []).map((c: Record<string, unknown>) => ({ id: c.id, name: c.name, order: c.order })) as Category[],
+          products: (products.data || []).map((p: Record<string, unknown>) => ({ ...p, categoryId: p.category_id || '' })) as Product[],
+          paymentMethods: (paymentMethods.data || []).map((m: Record<string, unknown>) => ({ ...m, qrisImage: m.qris_image })) as PaymentMethod[],
           orders: orders.data || [],
           messages: messages.data || [],
           reviews: reviews.data || [],
@@ -118,14 +132,32 @@ export const useStore = create<StoreState>()(
         })
       },
 
+      // Categories
+      addCategory: async (name) => {
+        const order = Date.now()
+        const { data } = await supabase.from('categories').insert([{ name, order }]).select().single()
+        if (data) set((s) => ({ categories: [...s.categories, { id: data.id, name: data.name, order: data.order }] }))
+      },
+      deleteCategory: async (id) => {
+        await supabase.from('categories').delete().eq('id', id)
+        set((s) => ({ categories: s.categories.filter((c) => c.id !== id) }))
+      },
+      updateCategory: async (id, name) => {
+        await supabase.from('categories').update({ name }).eq('id', id)
+        set((s) => ({ categories: s.categories.map((c) => c.id === id ? { ...c, name } : c) }))
+      },
+
       // Products
       addProduct: async (product) => {
-        const { data } = await supabase.from('products').insert([product]).select().single()
-        if (data) set((s) => ({ products: [...s.products, data] }))
+        const payload = { ...product, category_id: product.categoryId }
+        const { data } = await supabase.from('products').insert([payload]).select().single()
+        if (data) set((s) => ({ products: [...s.products, { ...data, categoryId: data.category_id }] }))
       },
       updateProduct: async (id, product) => {
-        const { data } = await supabase.from('products').update(product).eq('id', id).select().single()
-        if (data) set((s) => ({ products: s.products.map((p) => p.id === id ? data : p) }))
+        const payload: Record<string, unknown> = { ...product }
+        if (product.categoryId !== undefined) { payload.category_id = product.categoryId; delete payload.categoryId }
+        const { data } = await supabase.from('products').update(payload).eq('id', id).select().single()
+        if (data) set((s) => ({ products: s.products.map((p) => p.id === id ? { ...data, categoryId: data.category_id } : p) }))
       },
       deleteProduct: async (id) => {
         await supabase.from('products').delete().eq('id', id)
