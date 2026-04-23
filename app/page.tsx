@@ -21,6 +21,7 @@ export default function HomePage() {
   const [showOrdersPanel, setShowOrdersPanel] = useState(false)
   const [showBuyerInbox, setShowBuyerInbox] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [defaultCategoryId, setDefaultCategoryId] = useState<string>('')
 
   useEffect(() => {
     setMounted(true)
@@ -228,7 +229,7 @@ export default function HomePage() {
                       <div className="text-center py-10 border border-dashed border-zinc-800 rounded-xl">
                         <p className="text-zinc-600 text-sm">Belum ada produk di kategori ini</p>
                         {isModeratorMode && (
-                          <button onClick={() => setShowModeratorPanel(true)} className="mt-3 px-4 py-2 rounded-lg bg-white text-black text-sm font-medium hover:bg-zinc-200 transition-colors">
+                          <button onClick={() => { setDefaultCategoryId(category.id); setShowModeratorPanel(true) }} className="mt-3 px-4 py-2 rounded-lg bg-white text-black text-sm font-medium hover:bg-zinc-200 transition-colors">
                             Tambah Produk
                           </button>
                         )}
@@ -348,7 +349,7 @@ export default function HomePage() {
         )}
 
         {showModeratorPanel && isModeratorMode && (
-          <ModeratorPanel onClose={() => setShowModeratorPanel(false)} />
+          <ModeratorPanel onClose={() => { setShowModeratorPanel(false); setDefaultCategoryId('') }} defaultCategoryId={defaultCategoryId} />
         )}
 
         {showOrdersPanel && isModeratorMode && (

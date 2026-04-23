@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useStore, Product, PaymentMethod, Category } from '@/lib/store'
 import { X, Plus, Trash2, Edit2, Package, CreditCard, Image as ImageIcon, Upload, LayoutGrid } from 'lucide-react'
@@ -8,9 +8,10 @@ import Image from 'next/image'
 
 interface ModeratorPanelProps {
   onClose: () => void
+  defaultCategoryId?: string
 }
 
-export function ModeratorPanel({ onClose }: ModeratorPanelProps) {
+export function ModeratorPanel({ onClose, defaultCategoryId = '' }: ModeratorPanelProps) {
   const {
     products, categories,
     paymentMethods,
@@ -28,7 +29,17 @@ export function ModeratorPanel({ onClose }: ModeratorPanelProps) {
   const [saving, setSaving] = useState(false)
 
   const [productForm, setProductForm] = useState({
-    name: '', price: 0, image: '', stock: '', description: '', categoryId: ''
+    name: '', price: 0, image: '', stock: '', description: '', categoryId: defaultCategoryId
+  })
+
+  // Auto open tambah produk form kalau ada defaultCategoryId
+  useEffect(() => {
+    if (defaultCategoryId) {
+      setActiveTab('products')
+      setProductForm({ name: '', price: 0, image: '', stock: '', description: '', categoryId: defaultCategoryId })
+      setEditingProduct(null)
+      setIsAdding(true)
+    }
   })
   const [paymentForm, setPaymentForm] = useState({
     type: 'qris' as 'qris' | 'number', name: '', value: '', qrisImage: ''
