@@ -149,9 +149,11 @@ export const useStore = create<StoreState>()(
 
       // Products
       addProduct: async (product) => {
-        const payload = { ...product, category_id: product.categoryId }
-        const { data } = await supabase.from('products').insert([payload]).select().single()
-        if (data) set((s) => ({ products: [...s.products, { ...data, categoryId: data.category_id }] }))
+        const { categoryId, ...rest } = product
+        const payload = { ...rest, category_id: categoryId || null }
+        const { data, error } = await supabase.from('products').insert([payload]).select().single()
+        if (error) console.error('addProduct error:', error)
+        if (data) set((s) => ({ products: [...s.products, { ...data, categoryId: data.category_id || '' }] }))
       },
       updateProduct: async (id, product) => {
         const payload: Record<string, unknown> = { ...product }

@@ -40,7 +40,7 @@ export function ModeratorPanel({ onClose, defaultCategoryId = '' }: ModeratorPan
       setEditingProduct(null)
       setIsAdding(true)
     }
-  })
+  }, [defaultCategoryId])
   const [paymentForm, setPaymentForm] = useState({
     type: 'qris' as 'qris' | 'number', name: '', value: '', qrisImage: ''
   })
