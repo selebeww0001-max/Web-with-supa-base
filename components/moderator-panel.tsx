@@ -18,7 +18,7 @@ export function ModeratorPanel({ onClose, defaultCategoryId = '' }: ModeratorPan
     addProduct, updateProduct, deleteProduct,
     addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
     addCategory, updateCategory, deleteCategory,
-    logout
+    fetchAll, logout
   } = useStore()
 
   const [activeTab, setActiveTab] = useState<'products' | 'payments' | 'categories'>('products')
@@ -72,6 +72,7 @@ export function ModeratorPanel({ onClose, defaultCategoryId = '' }: ModeratorPan
       } else {
         await addProduct(productForm)
       }
+      await fetchAll()
       setProductForm({ name: '', price: 0, image: '', stock: '', description: '', categoryId: '' })
       setEditingProduct(null)
       setIsAdding(false)
@@ -86,6 +87,7 @@ export function ModeratorPanel({ onClose, defaultCategoryId = '' }: ModeratorPan
       } else {
         await addPaymentMethod(paymentForm)
       }
+      await fetchAll()
       setPaymentForm({ type: 'qris', name: '', value: '', qrisImage: '' })
       setEditingPayment(null)
       setIsAdding(false)
@@ -101,6 +103,7 @@ export function ModeratorPanel({ onClose, defaultCategoryId = '' }: ModeratorPan
       } else {
         await addCategory(categoryName)
       }
+      await fetchAll()
       setCategoryName('')
       setEditingCategory(null)
       setIsAdding(false)
