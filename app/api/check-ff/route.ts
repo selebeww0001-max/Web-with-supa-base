@@ -2,28 +2,26 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
   const { userId, zoneId } = await req.json()
-  
-  try {
-    const res = await fetch('https://api.vip-reseller.co.id/api/game-feature/check-id', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        member_id: 'Renjir',
-        signature: generateSignature('Renjir', 'fseuLObpxvk1PYgP4istpilWhIpme06JEssTidwRttW96E6taxVJreshNWviCe0r'),
-        game: 'free-fire',
-        user_id: userId,
-        zone_id: zoneId || '',
-      }),
-    })
-    const data = await res.json()
-    return NextResponse.json(data)
-  } catch {
-    return NextResponse.json({ success: false, message: 'Gagal cek ID' }, { status: 500 })
-  }
-}
 
-function generateSignature(memberId: string, apiKey: string) {
-  const crypto = require('crypto')
-  return crypto.createHash('md5').update(memberId + apiKey).digest('hex')
+  // Coba beberapa region FF Indonesia
+  const regions = ['ID', 'SG', 'ME']
+  
+  for (const region of regions) {
+    try {
+      const res = await fetch(
+        `https://free-ff-api-src-5plp.onrender.com/api/v1/account?region=${region}&uid=${userId}`,
+        { headers: { 'Accept': 'application/json' }, next: { revalidate: 0 } }
+      )
+      const data = await res.json()
+      
+      // Cek apakah ada nama player
+      const name = data?.basicInfo?.nickname || data?.nickname || data?.name
+      if (name) {
+        return NextResponse.json({ success: true, data: { name, region, uid: userId } })
+      }
+    } catch {}
+  }
+
+  return NextResponse.json({ success: false, message: 'ID tidak ditemukan' })
 }
 
