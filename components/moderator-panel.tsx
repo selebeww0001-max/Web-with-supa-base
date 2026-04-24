@@ -29,7 +29,7 @@ export function ModeratorPanel({ onClose, defaultCategoryId = '' }: ModeratorPan
   const [saving, setSaving] = useState(false)
 
   const [productForm, setProductForm] = useState({
-    name: '', price: 0, image: '', stock: '', description: '', categoryId: defaultCategoryId
+    name: '', price: 0, image: '', stock: '', description: '', categoryId: defaultCategoryId, productType: 'regular' as 'regular' | 'topup_ff', vipaymentCode: ''
   })
 
   // Auto open tambah produk form kalau ada defaultCategoryId
@@ -73,7 +73,7 @@ export function ModeratorPanel({ onClose, defaultCategoryId = '' }: ModeratorPan
         await addProduct(productForm)
       }
       await fetchAll()
-      setProductForm({ name: '', price: 0, image: '', stock: '', description: '', categoryId: '' })
+      setProductForm({ name: '', price: 0, image: '', stock: '', description: '', categoryId: '', productType: 'regular', vipaymentCode: '' })
       setEditingProduct(null)
       setIsAdding(false)
     } finally { setSaving(false) }
@@ -111,7 +111,7 @@ export function ModeratorPanel({ onClose, defaultCategoryId = '' }: ModeratorPan
   }
 
   const startEditProduct = (product: Product) => {
-    setProductForm({ name: product.name, price: product.price, image: product.image, stock: product.stock, description: product.description, categoryId: product.categoryId || '' })
+    setProductForm({ name: product.name, price: product.price, image: product.image, stock: product.stock, description: product.description, categoryId: product.categoryId || '', productType: product.productType || 'regular', vipaymentCode: product.vipaymentCode || '' })
     setEditingProduct(product)
     setIsAdding(true)
   }
@@ -228,6 +228,25 @@ export function ModeratorPanel({ onClose, defaultCategoryId = '' }: ModeratorPan
                         <input type="file" accept="image/*" onChange={handleProductImageUpload} className="hidden" />
                       </label>
                     </div>
+                    <div>
+                      <label className="block text-zinc-400 text-sm mb-2">Fungsi Produk</label>
+                      <select value={productForm.productType}
+                        onChange={(e) => setProductForm(prev => ({ ...prev, productType: e.target.value as 'regular' | 'topup_ff' }))}
+                        className="w-full px-4 py-3 rounded-lg bg-zinc-800 border border-zinc-700 text-white focus:border-zinc-600 focus:outline-none">
+                        <option value="regular">🛒 Produk Biasa (ACC manual)</option>
+                        <option value="topup_ff">⚡ Top Up Free Fire (QRIS otomatis)</option>
+                      </select>
+                    </div>
+                    {productForm.productType === 'topup_ff' && (
+                    <div>
+                      <label className="block text-zinc-400 text-sm mb-2">Kode Produk Vipayment</label>
+                      <input type="text" value={productForm.vipaymentCode}
+                        onChange={(e) => setProductForm(prev => ({ ...prev, vipaymentCode: e.target.value }))}
+                        placeholder="Contoh: FFID5DM, FFID100DM, dll"
+                        className="w-full px-4 py-3 rounded-lg bg-zinc-800 border border-zinc-700 text-white focus:border-zinc-600 focus:outline-none" />
+                      <p className="text-zinc-600 text-xs mt-1">Cek kode di vip-reseller.co.id → Dokumentasi API → Game & Streaming</p>
+                    </div>
+                    )}
                     <div className="col-span-2">
                       <label className="block text-zinc-400 text-sm mb-2">Deskripsi</label>
                       <textarea value={productForm.description}

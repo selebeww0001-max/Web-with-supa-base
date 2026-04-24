@@ -16,6 +16,8 @@ export interface Product {
   stock: string
   description: string
   categoryId: string
+  productType: 'regular' | 'topup_ff'
+  vipaymentCode: string
 }
 
 export interface PaymentMethod {
@@ -36,6 +38,12 @@ export interface Order {
   status: 'pending' | 'approved' | 'rejected'
   rejectionReason?: string
   createdAt: string
+  ffId?: string
+  ffName?: string
+  diamondAmount?: number
+  pakasirOrderId?: string
+  pakasirStatus?: string
+  topupStatus?: string
 }
 
 export interface Message {
@@ -80,8 +88,9 @@ interface StoreState {
   updatePaymentMethod: (id: string, method: Partial<PaymentMethod>) => Promise<void>
   deletePaymentMethod: (id: string) => Promise<void>
 
-  addOrder: (order: Omit<Order, 'id' | 'createdAt' | 'status'>) => Promise<void>
+  addOrder: (order: Omit<Order, 'id' | 'createdAt' | 'status'>) => Promise<string>
   updateOrderStatus: (id: string, status: Order['status'], rejectionReason?: string) => Promise<void>
+  updateOrderPakasir: (id: string, pakasirOrderId: string) => Promise<void>
 
   addMessage: (message: Omit<Message, 'id' | 'createdAt' | 'read'>) => Promise<void>
   markMessageRead: (id: string) => Promise<void>
@@ -92,6 +101,18 @@ interface StoreState {
 }
 
 const MODERATOR_PASSWORD = '852013'
+
+const mapProduct = (p: Record<string, unknown>): Product => ({
+  id: p.id as string,
+  name: p.name as string,
+  price: p.price as number,
+  image: (p.image as string) || '',
+  stock: (p.stock as string) || '0',
+  description: (p.description as string) || '',
+  categoryId: (p.category_id as string) || '',
+  productType: (p.product_type as 'regular' | 'topup_ff') || 'regular',
+  vipaymentCode: (p.vipayment_code as string) || '',
+})
 
 export const useStore = create<StoreState>()(
   persist(
@@ -123,16 +144,23 @@ export const useStore = create<StoreState>()(
         ])
         set({
           categories: (categories.data || []).map((c: Record<string, unknown>) => ({ id: c.id, name: c.name, order: c.order })) as Category[],
-          products: (products.data || []).map((p: Record<string, unknown>) => ({ ...p, categoryId: p.category_id || '' })) as Product[],
+          products: (products.data || []).map(mapProduct),
           paymentMethods: (paymentMethods.data || []).map((m: Record<string, unknown>) => ({ ...m, qrisImage: m.qris_image })) as PaymentMethod[],
-          orders: orders.data || [],
+          orders: (orders.data || []).map((o: Record<string, unknown>) => ({
+            ...o,
+            ffId: o.ff_id,
+            ffName: o.ff_name,
+            diamondAmount: o.diamond_amount,
+            pakasirOrderId: o.pakasir_order_id,
+            pakasirStatus: o.pakasir_status,
+            topupStatus: o.topup_status,
+          })) as Order[],
           messages: messages.data || [],
           reviews: reviews.data || [],
           loading: false,
         })
       },
 
-      // Categories
       addCategory: async (name) => {
         const order = Date.now()
         const { data } = await supabase.from('categories').insert([{ name, order }]).select().single()
@@ -147,26 +175,26 @@ export const useStore = create<StoreState>()(
         set((s) => ({ categories: s.categories.map((c) => c.id === id ? { ...c, name } : c) }))
       },
 
-      // Products
       addProduct: async (product) => {
-        const { categoryId, ...rest } = product
-        const payload = { ...rest, category_id: categoryId || null }
+        const { categoryId, productType, vipaymentCode, ...rest } = product
+        const payload = { ...rest, category_id: categoryId || null, product_type: productType || 'regular', vipayment_code: vipaymentCode || '' }
         const { data, error } = await supabase.from('products').insert([payload]).select().single()
         if (error) console.error('addProduct error:', error)
-        if (data) set((s) => ({ products: [...s.products, { ...data, categoryId: data.category_id || '' }] }))
+        if (data) set((s) => ({ products: [...s.products, mapProduct(data)] }))
       },
       updateProduct: async (id, product) => {
         const payload: Record<string, unknown> = { ...product }
         if (product.categoryId !== undefined) { payload.category_id = product.categoryId; delete payload.categoryId }
+        if (product.productType !== undefined) { payload.product_type = product.productType; delete payload.productType }
+        if (product.vipaymentCode !== undefined) { payload.vipayment_code = product.vipaymentCode; delete payload.vipaymentCode }
         const { data } = await supabase.from('products').update(payload).eq('id', id).select().single()
-        if (data) set((s) => ({ products: s.products.map((p) => p.id === id ? { ...data, categoryId: data.category_id } : p) }))
+        if (data) set((s) => ({ products: s.products.map((p) => p.id === id ? mapProduct(data) : p) }))
       },
       deleteProduct: async (id) => {
         await supabase.from('products').delete().eq('id', id)
         set((s) => ({ products: s.products.filter((p) => p.id !== id) }))
       },
 
-      // Payment Methods
       addPaymentMethod: async (method) => {
         const payload = { type: method.type, name: method.name, value: method.value, qris_image: method.qrisImage || '' }
         const { data } = await supabase.from('payment_methods').insert([payload]).select().single()
@@ -186,17 +214,39 @@ export const useStore = create<StoreState>()(
         set((s) => ({ paymentMethods: s.paymentMethods.filter((m) => m.id !== id) }))
       },
 
-      // Orders
       addOrder: async (order) => {
-        const { data } = await supabase.from('orders').insert([{ ...order, status: 'pending' }]).select().single()
-        if (data) set((s) => ({ orders: [data, ...s.orders] }))
+        const payload = {
+          product_id: order.productId,
+          product_name: order.productName,
+          telegram_username: order.telegramUsername || '',
+          payment_proof: order.paymentProof || '',
+          payment_method: order.paymentMethod,
+          status: 'pending',
+          ff_id: order.ffId || '',
+          ff_name: order.ffName || '',
+          diamond_amount: order.diamondAmount || 0,
+          pakasir_order_id: order.pakasirOrderId || '',
+          pakasir_status: order.pakasirStatus || 'pending',
+          topup_status: order.topupStatus || 'pending',
+        }
+        const { data, error } = await supabase.from('orders').insert([payload]).select().single()
+        if (error) console.error('addOrder error:', error)
+        if (data) {
+          const mapped = { ...data, ffId: data.ff_id, ffName: data.ff_name, diamondAmount: data.diamond_amount, pakasirOrderId: data.pakasir_order_id, pakasirStatus: data.pakasir_status, topupStatus: data.topup_status }
+          set((s) => ({ orders: [mapped, ...s.orders] }))
+          return data.id
+        }
+        return ''
       },
       updateOrderStatus: async (id, status, rejectionReason) => {
         const { data } = await supabase.from('orders').update({ status, rejection_reason: rejectionReason }).eq('id', id).select().single()
-        if (data) set((s) => ({ orders: s.orders.map((o) => o.id === id ? data : o) }))
+        if (data) set((s) => ({ orders: s.orders.map((o) => o.id === id ? { ...o, status, rejectionReason } : o) }))
+      },
+      updateOrderPakasir: async (id, pakasirOrderId) => {
+        await supabase.from('orders').update({ pakasir_order_id: pakasirOrderId, pakasir_status: 'waiting' }).eq('id', id)
+        set((s) => ({ orders: s.orders.map((o) => o.id === id ? { ...o, pakasirOrderId, pakasirStatus: 'waiting' } : o) }))
       },
 
-      // Messages
       addMessage: async (message) => {
         const { data } = await supabase.from('messages').insert([{ ...message, read: false }]).select().single()
         if (data) set((s) => ({ messages: [data, ...s.messages] }))
@@ -210,7 +260,6 @@ export const useStore = create<StoreState>()(
         set((s) => ({ messages: s.messages.filter((m) => m.id !== id) }))
       },
 
-      // Reviews
       addReview: async (review) => {
         const { data } = await supabase.from('reviews').insert([review]).select().single()
         if (data) set((s) => ({ reviews: [data, ...s.reviews] }))
