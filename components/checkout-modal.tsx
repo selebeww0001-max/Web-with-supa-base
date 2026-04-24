@@ -12,23 +12,85 @@ interface CheckoutModalProps {
   onClose: () => void
 }
 
-// Paket diamond FF
+const MARKUP = 1.13 // 13% markup
+
+// Paket FF (Basic) sampai 1080 DM
 const FF_PACKAGES = [
-  { diamonds: 5, label: '5 DM', code: 'FF5' },
-  { diamonds: 12, label: '12 DM', code: 'FF12' },
-  { diamonds: 50, label: '50 DM', code: 'FF50' },
-  { diamonds: 70, label: '70 DM', code: 'FF70' },
-  { diamonds: 100, label: '100 DM', code: 'FF100' },
-  { diamonds: 140, label: '140 DM', code: 'FF140' },
-  { diamonds: 210, label: '210 DM', code: 'FF210' },
-  { diamonds: 355, label: '355 DM', code: 'FF355' },
-  { diamonds: 500, label: '500 DM', code: 'FF500' },
-  { diamonds: 720, label: '720 DM', code: 'FF720' },
-  { diamonds: 1000, label: '1.000 DM', code: 'FF1000' },
-  { diamonds: 1080, label: '1.080 DM', code: 'FF1080' },
-  { diamonds: 2180, label: '2.180 DM', code: 'FF2180' },
-  { diamonds: 3280, label: '3.280 DM', code: 'FF3280' },
-  { diamonds: 5600, label: '5.600 DM', code: 'FF5600' },
+  { diamonds: 5, label: '5 DM', code: 'FF5-S13', price: 853 },
+  { diamonds: 10, label: '10 DM', code: 'FF10-S13', price: 1696 },
+  { diamonds: 12, label: '12 DM', code: 'FF12-S13', price: 1861 },
+  { diamonds: 15, label: '15 DM', code: 'FF15-S13', price: 2536 },
+  { diamonds: 20, label: '20 DM', code: 'FF20-S13', price: 3378 },
+  { diamonds: 25, label: '25 DM', code: 'FF25-S13', price: 4222 },
+  { diamonds: 30, label: '30 DM', code: 'FF30-S13', price: 5066 },
+  { diamonds: 40, label: '40 DM', code: 'FF40-S13', price: 6386 },
+  { diamonds: 50, label: '50 DM', code: 'FF50-S13', price: 6663 },
+  { diamonds: 55, label: '55 DM', code: 'FF55-S13', price: 7590 },
+  { diamonds: 60, label: '60 DM', code: 'FF60-S13', price: 8410 },
+  { diamonds: 70, label: '70 DM', code: 'FF70-S13', price: 9220 },
+  { diamonds: 0, label: 'Level Up Pass', code: 'FFLUP-S13', price: 9235 },
+  { diamonds: 75, label: '75 DM', code: 'FF75-S13', price: 10220 },
+  { diamonds: 80, label: '80 DM', code: 'FF80-S13', price: 11149 },
+  { diamonds: 90, label: '90 DM', code: 'FF90-S13', price: 12603 },
+  { diamonds: 100, label: '100 DM', code: 'FF100-S13', price: 13577 },
+  { diamonds: 120, label: '120 DM', code: 'FF120-S13', price: 15864 },
+  { diamonds: 0, label: 'Member Mingguan Lite', code: 'FFMML-S13', price: 16933 },
+  { diamonds: 130, label: '130 DM', code: 'FF130-S13', price: 17667 },
+  { diamonds: 140, label: '140 DM', code: 'FF140-S13', price: 18295 },
+  { diamonds: 150, label: '150 DM', code: 'FF150-S13', price: 19273 },
+  { diamonds: 160, label: '160 DM', code: 'FF160-S13', price: 20967 },
+  { diamonds: 170, label: '170 DM', code: 'FF170-S13', price: 22401 },
+  { diamonds: 180, label: '180 DM', code: 'FF180-S13', price: 24405 },
+  { diamonds: 200, label: '200 DM', code: 'FF200-S13', price: 27362 },
+  { diamonds: 210, label: '210 DM', code: 'FF210-S13', price: 27870 },
+  { diamonds: 0, label: 'Member Mingguan', code: 'FFMM-S13', price: 28259 },
+  { diamonds: 250, label: '250 DM', code: 'FF250-S13', price: 32783 },
+  { diamonds: 280, label: '280 DM', code: 'FF280-S13', price: 37172 },
+  { diamonds: 300, label: '300 DM', code: 'FF300-S13', price: 39787 },
+  { diamonds: 355, label: '355 DM', code: 'FF355-S13', price: 45151 },
+  { diamonds: 420, label: '420 DM', code: 'FF420-S13', price: 55597 },
+  { diamonds: 500, label: '500 DM', code: 'FF500-S13', price: 65960 },
+  { diamonds: 520, label: '520 DM', code: 'FF520-S13', price: 69255 },
+  { diamonds: 600, label: '600 DM', code: 'FF600-S13', price: 79005 },
+  { diamonds: 0, label: 'Member Bulanan', code: 'FFMB-S13', price: 84727 },
+  { diamonds: 720, label: '720 DM', code: 'FF720-S13', price: 92892 },
+  { diamonds: 800, label: '800 DM', code: 'FF800-S13', price: 103542 },
+  { diamonds: 860, label: '860 DM', code: 'FF860-S13', price: 111465 },
+  { diamonds: 1000, label: '1.000 DM', code: 'FF1000-S13', price: 130038 },
+  { diamonds: 1080, label: '1.080 DM', code: 'FF1080-S13', price: 139246 },
+]
+
+// Paket FF Max sampai 1080 DM
+const FFMAX_PACKAGES = [
+  { diamonds: 5, label: '5 DM', code: 'FFMAX5-S24', price: 928 },
+  { diamonds: 10, label: '10 DM', code: 'FFMAX10-S24', price: 1856 },
+  { diamonds: 50, label: '50 DM', code: 'FFMAX50-S24', price: 7426 },
+  { diamonds: 55, label: '55 DM', code: 'FFMAX55-S24', price: 8354 },
+  { diamonds: 70, label: '70 DM', code: 'FFMAX70-S24', price: 9231 },
+  { diamonds: 80, label: '80 DM', code: 'FFMAX80-S24', price: 11138 },
+  { diamonds: 100, label: '100 DM', code: 'FFMAX100-S24', price: 14851 },
+  { diamonds: 120, label: '120 DM', code: 'FFMAX120-S24', price: 16708 },
+  { diamonds: 130, label: '130 DM', code: 'FFMAX130-S24', price: 18564 },
+  { diamonds: 140, label: '140 DM', code: 'FFMAX140-S24', price: 18462 },
+  { diamonds: 150, label: '150 DM', code: 'FFMAX150-S24', price: 20420 },
+  { diamonds: 190, label: '190 DM', code: 'FFMAX190-S24', price: 25990 },
+  { diamonds: 200, label: '200 DM', code: 'FFMAX200-S24', price: 27846 },
+  { diamonds: 210, label: '210 DM', code: 'FFMAX210-S24', price: 27846 },
+  { diamonds: 0, label: 'Member Mingguan', code: 'FFMAXMINGGUAN-S24', price: 28236 },
+  { diamonds: 280, label: '280 DM', code: 'FFMAX280-S24', price: 37128 },
+  { diamonds: 0, label: '🎫 BP Card', code: 'FFMBPC-S24', price: 42353 },
+  { diamonds: 355, label: '355 DM', code: 'FFMAX355-S24', price: 46410 },
+  { diamonds: 420, label: '420 DM', code: 'FFMAX420-S24', price: 55692 },
+  { diamonds: 500, label: '500 DM', code: 'FFMAX500-S24', price: 65902 },
+  { diamonds: 510, label: '510 DM', code: 'FFMAX510-S24', price: 67759 },
+  { diamonds: 565, label: '565 DM', code: 'FFMAX565-S24', price: 74256 },
+  { diamonds: 635, label: '635 DM', code: 'FFMAX635-S24', price: 83538 },
+  { diamonds: 0, label: 'Member Bulanan', code: 'FFMAXBULANAN-S24', price: 84706 },
+  { diamonds: 720, label: '720 DM', code: 'FFMAX720-S24', price: 92820 },
+  { diamonds: 800, label: '800 DM', code: 'FFMAX800-S24', price: 103958 },
+  { diamonds: 860, label: '860 DM', code: 'FFMAX860-S24', price: 111384 },
+  { diamonds: 1000, label: '1.000 DM', code: 'FFMAX1000-S24', price: 129948 },
+  { diamonds: 1080, label: '1.080 DM', code: 'FFMAX1080-S24', price: 140158 },
 ]
 
 export function CheckoutModal({ product, onClose }: CheckoutModalProps) {
@@ -45,6 +107,7 @@ export function CheckoutModal({ product, onClose }: CheckoutModalProps) {
   const [checkingFF, setCheckingFF] = useState(false)
   const [ffError, setFfError] = useState('')
   const [selectedPackage, setSelectedPackage] = useState<typeof FF_PACKAGES[0] | null>(null)
+  const [ffVersion, setFfVersion] = useState<'ff' | 'ffmax'>('ff')
 
   // Regular payment state
   const [selectedPayment, setSelectedPayment] = useState<typeof paymentMethods[0] | null>(null)
@@ -100,7 +163,7 @@ export function CheckoutModal({ product, onClose }: CheckoutModalProps) {
 
   // Generate QRIS
   const generateQRIS = async (pkg: typeof FF_PACKAGES[0] | null) => {
-    const amount = pkg ? product.price : product.price
+    const amount = pkg ? Math.ceil(pkg.price * MARKUP) : product.price
     setPaymentAmount(amount)
     setGeneratingQris(true)
     
@@ -121,6 +184,7 @@ export function CheckoutModal({ product, onClose }: CheckoutModalProps) {
         pakasirOrderId: newOrderId,
         pakasirStatus: 'waiting',
         topupStatus: 'pending',
+        vipaymentCode: pkg?.code || product.vipaymentCode,
       })
       setDbOrderId(savedOrderId)
 
@@ -242,7 +306,7 @@ export function CheckoutModal({ product, onClose }: CheckoutModalProps) {
                   <p className="text-zinc-400 text-xs mt-0.5 leading-relaxed">{product.description}</p>
                   {!isTopupFF && <p className="text-white font-bold mt-1">Rp {product.price.toLocaleString('id-ID')}</p>}
                   {isTopupFF && selectedPackage && (
-                    <p className="text-white font-bold mt-1">Rp {product.price.toLocaleString('id-ID')} · {selectedPackage.label}</p>
+                    <p className="text-white font-bold mt-1">Rp {Math.ceil(selectedPackage.price * MARKUP).toLocaleString('id-ID')} · {selectedPackage.label}</p>
                   )}
                 </div>
               </div>
@@ -251,6 +315,18 @@ export function CheckoutModal({ product, onClose }: CheckoutModalProps) {
               {step === 'ff_id' && (
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
                   <h3 className="text-white font-semibold">Masukkan ID Free Fire</h3>
+                  
+                  {/* Pilih versi FF */}
+                  <div className="flex gap-2">
+                    <button onClick={() => setFfVersion('ff')}
+                      className={`flex-1 py-2 rounded-xl border text-sm font-medium transition-all ${ffVersion === 'ff' ? 'border-white bg-zinc-800 text-white' : 'border-zinc-700 text-zinc-500'}`}>
+                      🎮 Free Fire
+                    </button>
+                    <button onClick={() => setFfVersion('ffmax')}
+                      className={`flex-1 py-2 rounded-xl border text-sm font-medium transition-all ${ffVersion === 'ffmax' ? 'border-yellow-400 bg-yellow-500/10 text-yellow-400' : 'border-zinc-700 text-zinc-500'}`}>
+                      ⚡ FF Max
+                    </button>
+                  </div>
                   
                   <div>
                     <label className="block text-zinc-400 text-sm mb-2">ID Player FF <span className="text-red-400">*</span></label>
@@ -305,16 +381,16 @@ export function CheckoutModal({ product, onClose }: CheckoutModalProps) {
                   </div>
 
                   <div className="grid grid-cols-3 gap-2">
-                    {FF_PACKAGES.map((pkg) => (
+                    {(ffVersion === 'ffmax' ? FFMAX_PACKAGES : FF_PACKAGES).map((pkg) => (
                       <button key={pkg.code} onClick={() => setSelectedPackage(pkg)}
                         className={`p-3 rounded-xl border text-center transition-all ${
                           selectedPackage?.code === pkg.code
                             ? 'border-white bg-zinc-800 shadow-lg shadow-white/10'
                             : 'border-zinc-800 bg-zinc-900 hover:border-zinc-600'
                         }`}>
-                        <p className="text-white font-bold text-sm">💎</p>
+                        <p className="text-white font-bold text-sm">{pkg.diamonds > 0 ? '💎' : '🎫'}</p>
                         <p className="text-white text-xs font-semibold mt-1">{pkg.label}</p>
-                        <p className="text-zinc-400 text-xs mt-0.5">Rp {product.price.toLocaleString('id-ID')}</p>
+                        <p className="text-green-400 text-xs font-bold mt-0.5">Rp {Math.ceil(pkg.price * MARKUP).toLocaleString('id-ID')}</p>
                       </button>
                     ))}
                   </div>
