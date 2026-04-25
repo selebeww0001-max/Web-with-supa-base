@@ -21,9 +21,9 @@ export function OrdersPanel({ onClose }: OrdersPanelProps) {
   const processedOrders = orders.filter(o => o.status !== 'pending')
   const unreadMessages = messages.filter(m => !m.read)
 
-  const handleReject = (orderId: string) => {
+  const handleReject = async (orderId: string) => {
     if (rejectionReason.trim()) {
-      updateOrderStatus(orderId, 'rejected', rejectionReason)
+      await updateOrderStatus(orderId, 'rejected', rejectionReason)
       setRejectingOrderId(null)
       setRejectionReason('')
     }
@@ -116,7 +116,7 @@ export function OrdersPanel({ onClose }: OrdersPanelProps) {
                           {rejectingOrderId !== order.id && (
                             <div className="flex gap-2">
                               <button
-                                onClick={() => updateOrderStatus(order.id, 'approved')}
+                                onClick={() => { updateOrderStatus(order.id, 'approved') }}
                                 className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors"
                                 title="Approve"
                               >
@@ -314,3 +314,4 @@ export function OrdersPanel({ onClose }: OrdersPanelProps) {
     </motion.div>
   )
 }
+
