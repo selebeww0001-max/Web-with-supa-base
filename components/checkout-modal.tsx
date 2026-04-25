@@ -327,42 +327,36 @@ export function CheckoutModal({ product, onClose }: CheckoutModalProps) {
                       ⚡ FF Max
                     </button>
                   </div>
-                  
+
                   <div>
                     <label className="block text-zinc-400 text-sm mb-2">ID Player FF <span className="text-red-400">*</span></label>
                     <input type="text" value={ffId}
-                      onChange={(e) => { setFfId(e.target.value); setFfName(''); setFfError('') }}
-                      placeholder="Contoh: 123456789"
+                      onChange={(e) => { setFfId(e.target.value); setFfError('') }}
+                      placeholder="Contoh: 7820278310"
                       className="w-full px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-800 text-white placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none" />
+                    <p className="text-zinc-600 text-xs mt-1">Cek ID kamu di profil game → tap ikon copy di samping UID</p>
                   </div>
 
-                  <div>
-                    <label className="block text-zinc-400 text-sm mb-2">Zone ID <span className="text-zinc-600">(jika ada)</span></label>
-                    <input type="text" value={ffZone}
-                      onChange={(e) => setFfZone(e.target.value)}
-                      placeholder="Contoh: 1234 (kosongkan jika tidak tahu)"
-                      className="w-full px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-800 text-white placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none" />
+                  {/* Warning box */}
+                  <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                    <p className="text-amber-400 text-sm font-semibold mb-1">⚠️ Perhatian!</p>
+                    <p className="text-amber-300/80 text-xs leading-relaxed">
+                      Pastikan ID yang kamu masukkan <span className="font-bold text-amber-400">BENAR</span> sebelum lanjut. 
+                      Diamond yang sudah terkirim ke ID yang salah <span className="font-bold text-amber-400">tidak dapat dikembalikan</span>.
+                    </p>
                   </div>
-
-                  <button onClick={checkFFId} disabled={checkingFF || !ffId.trim()}
-                    className="w-full py-3 rounded-xl bg-zinc-800 border border-zinc-700 text-white font-medium hover:bg-zinc-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-                    {checkingFF ? <><Loader2 className="w-4 h-4 animate-spin" /> Mengecek...</> : '🔍 Cek Nama Player'}
-                  </button>
 
                   {ffError && <p className="text-red-400 text-sm text-center">{ffError}</p>}
 
-                  {ffName && (
-                    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                      className="p-4 rounded-xl bg-green-500/10 border border-green-500/30 text-center">
-                      <p className="text-zinc-400 text-sm">Nama Player</p>
-                      <p className="text-green-400 font-bold text-xl mt-1">{ffName}</p>
-                      <p className="text-zinc-500 text-xs mt-1">ID: {ffId}{ffZone ? ` · Zone: ${ffZone}` : ''}</p>
-                    </motion.div>
-                  )}
-
-                  <button onClick={() => setStep('select_package')} disabled={!ffName}
+                  <button 
+                    onClick={() => {
+                      if (!ffId.trim()) { setFfError('Masukkan ID FF kamu'); return }
+                      setFfName(ffId)
+                      setStep('select_package')
+                    }}
+                    disabled={!ffId.trim()}
                     className="w-full py-4 rounded-xl bg-white text-black font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-zinc-200 transition-colors">
-                    Lanjut Pilih Paket →
+                    ✅ ID Saya Sudah Benar, Lanjut →
                   </button>
                 </motion.div>
               )}
