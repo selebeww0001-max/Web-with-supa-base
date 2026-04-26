@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useStore } from '@/lib/store'
-import { X, Check, XCircle, Clock, ExternalLink, MessageSquare } from 'lucide-react'
+import { X, Check, XCircle, Clock, ExternalLink, MessageSquare, Zap } from 'lucide-react'
 import Image from 'next/image'
 
 interface OrdersPanelProps {
@@ -13,17 +13,35 @@ interface OrdersPanelProps {
 export function OrdersPanel({ onClose }: OrdersPanelProps) {
   const { orders, updateOrderStatus, messages, markMessageRead, deleteMessage, fetchAll } = useStore()
   const [error, setError] = useState('')
-
-  useEffect(() => {
-    fetchAll()
-  }, [])
   const [activeTab, setActiveTab] = useState<'orders' | 'messages'>('orders')
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [rejectingOrderId, setRejectingOrderId] = useState<string | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
 
-  const pendingOrders = orders.filter(o => o.status === 'pending').slice(0, 50)
-  const processedOrders = orders.filter(o => o.status !== 'pending').slice(0, 50)
+  useEffect(() => {
+    fetchAll()
+  }, [])
+
+  // Order biasa pending (ada bukti bayar, bukan QRIS otomatis)
+  const pendingOrders = orders
+    .filter(o => o.status === 'pending' && o.paymentMethod !== 'QRIS Otomatis' && o.paymentProof)
+    .slice(0, 50)
+
+  // Order QRIS otomatis yang sedang menunggu bayar
+  const qrisPendingOrders = orders
+    .filter(o => o.status === 'pending' && o.paymentMethod === 'QRIS Otomatis' && (o.pakasirStatus === 'waiting' || o.pakasirStatus === 'pending'))
+    .slice(0, 20)
+
+  // Order QRIS yang sudah dibayar tapi topup belum selesai
+  const qrisProcessingOrders = orders
+    .filter(o => o.status === 'approved' && o.paymentMethod === 'QRIS Otomatis' && o.topupStatus === 'processing')
+    .slice(0, 20)
+
+  const processedOrders = orders
+    .filter(o => o.status !== 'pending')
+    .filter(o => !(o.paymentMethod === 'QRIS Otomatis' && o.topupStatus === 'processing'))
+    .slice(0, 50)
+
   const unreadMessages = messages.filter(m => !m.read)
 
   const handleReject = async (orderId: string) => {
@@ -36,14 +54,11 @@ export function OrdersPanel({ onClose }: OrdersPanelProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
     >
       <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
+        initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
         className="w-full max-w-3xl max-h-[90vh] bg-zinc-900 rounded-2xl border border-zinc-700 overflow-hidden"
       >
         {/* Header */}
@@ -52,10 +67,7 @@ export function OrdersPanel({ onClose }: OrdersPanelProps) {
             <h2 className="text-2xl font-bold text-white">Inbox Moderator</h2>
             <p className="text-zinc-400 text-sm">Kelola pesanan dan pesan</p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-full bg-zinc-800 hover:bg-zinc-700 transition-colors"
-          >
+          <button onClick={onClose} className="p-2 rounded-full bg-zinc-800 hover:bg-zinc-700 transition-colors">
             <X className="w-5 h-5 text-zinc-400" />
           </button>
         </div>
@@ -65,110 +77,114 @@ export function OrdersPanel({ onClose }: OrdersPanelProps) {
             <p className="text-red-400 text-sm">{error}</p>
           </div>
         )}
+
         {/* Tabs */}
         <div className="flex border-b border-zinc-800 bg-zinc-900/50">
-          <button
-            onClick={() => setActiveTab('orders')}
-            className={`flex items-center gap-2 px-6 py-4 transition-colors relative ${
-              activeTab === 'orders'
-                ? 'text-white border-b-2 border-white'
-                : 'text-zinc-500 hover:text-white'
-            }`}
-          >
+          <button onClick={() => setActiveTab('orders')}
+            className={`flex items-center gap-2 px-6 py-4 transition-colors ${activeTab === 'orders' ? 'text-white border-b-2 border-white' : 'text-zinc-500 hover:text-white'}`}>
             <Clock className="w-5 h-5" />
             Pesanan
             {pendingOrders.length > 0 && (
-              <span className="ml-2 px-2 py-0.5 rounded-full bg-amber-500 text-black text-xs font-medium">
-                {pendingOrders.length}
-              </span>
+              <span className="ml-2 px-2 py-0.5 rounded-full bg-amber-500 text-black text-xs font-medium">{pendingOrders.length}</span>
             )}
           </button>
-          <button
-            onClick={() => setActiveTab('messages')}
-            className={`flex items-center gap-2 px-6 py-4 transition-colors relative ${
-              activeTab === 'messages'
-                ? 'text-white border-b-2 border-white'
-                : 'text-zinc-500 hover:text-white'
-            }`}
-          >
+          <button onClick={() => setActiveTab('messages')}
+            className={`flex items-center gap-2 px-6 py-4 transition-colors ${activeTab === 'messages' ? 'text-white border-b-2 border-white' : 'text-zinc-500 hover:text-white'}`}>
             <MessageSquare className="w-5 h-5" />
             Pesan
             {unreadMessages.length > 0 && (
-              <span className="ml-2 px-2 py-0.5 rounded-full bg-amber-500 text-black text-xs font-medium">
-                {unreadMessages.length}
-              </span>
+              <span className="ml-2 px-2 py-0.5 rounded-full bg-amber-500 text-black text-xs font-medium">{unreadMessages.length}</span>
             )}
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)] bg-zinc-950">
+        <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)] bg-zinc-950 space-y-6">
           {activeTab === 'orders' && (
             <div className="space-y-6">
-              {/* Pending orders */}
+
+              {/* QRIS belum dibayar */}
+              {qrisPendingOrders.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider mb-3">⏳ QRIS Menunggu Pembayaran</h3>
+                  <div className="space-y-2">
+                    {qrisPendingOrders.map((order) => (
+                      <div key={order.id} className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-between">
+                        <div>
+                          <p className="text-white text-sm font-medium">{order.productName}</p>
+                          <p className="text-zinc-500 text-xs">ID FF: {order.ffId || '-'} · {new Date(order.createdAt).toLocaleString('id-ID')}</p>
+                        </div>
+                        <span className="px-2 py-1 rounded-full bg-zinc-800 text-zinc-400 text-xs">Belum Bayar</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* QRIS sudah bayar, topup diproses */}
+              {qrisProcessingOrders.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider mb-3">⚡ QRIS - Topup Diproses</h3>
+                  <div className="space-y-2">
+                    {qrisProcessingOrders.map((order) => (
+                      <div key={order.id} className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-between">
+                        <div>
+                          <p className="text-white text-sm font-medium">{order.productName}</p>
+                          <p className="text-zinc-500 text-xs">ID FF: {order.ffId || '-'}</p>
+                        </div>
+                        <span className="px-2 py-1 rounded-full bg-blue-500/20 text-blue-400 text-xs flex items-center gap-1">
+                          <Zap className="w-3 h-3" /> Diproses
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Order manual pending */}
               {pendingOrders.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-semibold text-white mb-4">Menunggu Konfirmasi</h3>
+                  <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider mb-3">🕐 Menunggu Konfirmasi Manual</h3>
                   <div className="space-y-3">
                     {pendingOrders.map((order) => (
-                      <div
-                        key={order.id}
-                        className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30"
-                      >
+                      <div key={order.id} className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <h4 className="text-white font-medium">{order.productName}</h4>
                             <p className="text-amber-400 text-sm">@{order.telegramUsername}</p>
                             <p className="text-zinc-500 text-xs mt-1">
-                              via {order.paymentMethod} - {new Date(order.createdAt).toLocaleString('id-ID')}
+                              via {order.paymentMethod} · {new Date(order.createdAt).toLocaleString('id-ID')}
                             </p>
                           </div>
                           {rejectingOrderId !== order.id && (
                             <div className="flex gap-2">
                               <button
-                                onClick={async () => { try { await updateOrderStatus(order.id, 'approved') } catch { setError('Gagal approve, coba lagi') } }}
-                                className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors"
-                                title="Approve"
-                              >
+                                onClick={async () => { try { await updateOrderStatus(order.id, 'approved'); await fetchAll() } catch { setError('Gagal approve, coba lagi') } }}
+                                className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors">
                                 <Check className="w-5 h-5" />
                               </button>
                               <button
                                 onClick={() => setRejectingOrderId(order.id)}
-                                className="p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"
-                                title="Reject"
-                              >
+                                className="p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors">
                                 <XCircle className="w-5 h-5" />
                               </button>
                             </div>
                           )}
                         </div>
 
-                        {/* Rejection reason input */}
                         {rejectingOrderId === order.id && (
                           <div className="mt-4 p-3 rounded-lg bg-zinc-900 border border-zinc-700">
                             <p className="text-sm text-zinc-400 mb-2">Alasan penolakan:</p>
-                            <textarea
-                              value={rejectionReason}
-                              onChange={(e) => setRejectionReason(e.target.value)}
-                              placeholder="Masukkan alasan penolakan..."
-                              className="w-full p-3 rounded-lg bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-500 text-sm resize-none focus:outline-none focus:border-zinc-600"
-                              rows={2}
-                            />
+                            <textarea value={rejectionReason} onChange={(e) => setRejectionReason(e.target.value)}
+                              placeholder="Masukkan alasan..."
+                              className="w-full p-3 rounded-lg bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-500 text-sm resize-none focus:outline-none" rows={2} />
                             <div className="flex gap-2 mt-2">
-                              <button
-                                onClick={() => handleReject(order.id)}
-                                disabled={!rejectionReason.trim()}
-                                className="px-4 py-2 rounded-lg bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
+                              <button onClick={() => handleReject(order.id)} disabled={!rejectionReason.trim()}
+                                className="px-4 py-2 rounded-lg bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50">
                                 Reject
                               </button>
-                              <button
-                                onClick={() => {
-                                  setRejectingOrderId(null)
-                                  setRejectionReason('')
-                                }}
-                                className="px-4 py-2 rounded-lg bg-zinc-700 text-white text-sm hover:bg-zinc-600 transition-colors"
-                              >
+                              <button onClick={() => { setRejectingOrderId(null); setRejectionReason('') }}
+                                className="px-4 py-2 rounded-lg bg-zinc-700 text-white text-sm hover:bg-zinc-600 transition-colors">
                                 Batal
                               </button>
                             </div>
@@ -176,62 +192,52 @@ export function OrdersPanel({ onClose }: OrdersPanelProps) {
                         )}
 
                         {order.paymentProof && (
-                          <button
-                            onClick={() => setSelectedImage(order.paymentProof)}
-                            className="mt-3 block"
-                          >
-                            <Image
-                              src={order.paymentProof}
-                              alt="Bukti transfer"
-                              width={200}
-                              height={150}
-                              className="rounded-lg object-cover hover:opacity-80 transition-opacity border border-zinc-700"
-                            />
+                          <button onClick={() => setSelectedImage(order.paymentProof)} className="mt-3 block">
+                            <Image src={order.paymentProof} alt="Bukti transfer" width={200} height={150}
+                              className="rounded-lg object-cover hover:opacity-80 transition-opacity border border-zinc-700" />
                           </button>
                         )}
-                        <a
-                          href={`https://t.me/${order.telegramUsername.replace('@', '')}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 mt-3 text-zinc-400 text-sm hover:text-white transition-colors"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                          Chat di Telegram
-                        </a>
+
+                        {order.telegramUsername && (
+                          <a href={`https://t.me/${order.telegramUsername.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-2 mt-3 text-zinc-400 text-sm hover:text-white transition-colors">
+                            <ExternalLink className="w-4 h-4" />
+                            Chat di Telegram
+                          </a>
+                        )}
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Processed orders */}
+              {/* Riwayat */}
               {processedOrders.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-semibold text-white mb-4">Riwayat</h3>
-                  <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider mb-3">📋 Riwayat</h3>
+                  <div className="space-y-2">
                     {processedOrders.map((order) => (
-                      <div
-                        key={order.id}
-                        className={`p-4 rounded-xl border ${
-                          order.status === 'approved'
-                            ? 'bg-emerald-500/10 border-emerald-500/30'
-                            : 'bg-red-500/10 border-red-500/30'
-                        }`}
-                      >
+                      <div key={order.id} className={`p-4 rounded-xl border ${
+                        order.status === 'approved' ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-red-500/10 border-red-500/30'
+                      }`}>
                         <div className="flex items-center justify-between">
                           <div>
-                            <h4 className="text-white font-medium">{order.productName}</h4>
-                            <p className="text-zinc-400 text-sm">@{order.telegramUsername}</p>
+                            <h4 className="text-white font-medium text-sm">{order.productName}</h4>
+                            <p className="text-zinc-400 text-xs">
+                              {order.telegramUsername ? `@${order.telegramUsername}` : `ID FF: ${order.ffId || '-'}`}
+                            </p>
                             {order.status === 'rejected' && order.rejectionReason && (
-                              <p className="text-red-400 text-sm mt-1">
-                                Alasan: {order.rejectionReason}
-                              </p>
+                              <p className="text-red-400 text-xs mt-1">Alasan: {order.rejectionReason}</p>
+                            )}
+                            {order.topupStatus === 'success' && (
+                              <p className="text-emerald-400 text-xs mt-1">⚡ Diamond terkirim</p>
+                            )}
+                            {order.topupStatus === 'failed' && (
+                              <p className="text-red-400 text-xs mt-1">❌ Topup gagal - akan retry</p>
                             )}
                           </div>
                           <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            order.status === 'approved'
-                              ? 'bg-emerald-500/20 text-emerald-400'
-                              : 'bg-red-500/20 text-red-400'
+                            order.status === 'approved' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'
                           }`}>
                             {order.status === 'approved' ? 'Approved' : 'Rejected'}
                           </span>
@@ -253,44 +259,27 @@ export function OrdersPanel({ onClose }: OrdersPanelProps) {
 
           {activeTab === 'messages' && (
             <div className="space-y-3">
-              {messages.length > 0 ? (
-                messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`p-4 rounded-xl border ${
-                      message.read
-                        ? 'bg-zinc-900 border-zinc-800'
-                        : 'bg-zinc-800 border-zinc-700'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <p className="text-white font-medium">{message.from}</p>
-                        <p className="text-zinc-300 mt-1">{message.content}</p>
-                        <p className="text-zinc-600 text-xs mt-2">
-                          {new Date(message.createdAt).toLocaleString('id-ID')}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        {!message.read && (
-                          <button
-                            onClick={() => markMessageRead(message.id)}
-                            className="p-2 rounded-lg bg-zinc-700 text-white hover:bg-zinc-600 transition-colors"
-                          >
-                            <Check className="w-4 h-4" />
-                          </button>
-                        )}
-                        <button
-                          onClick={() => deleteMessage(message.id)}
-                          className="p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"
-                        >
-                          <X className="w-4 h-4" />
+              {messages.length > 0 ? messages.map((message) => (
+                <div key={message.id} className={`p-4 rounded-xl border ${message.read ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-800 border-zinc-700'}`}>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="text-white font-medium">{message.from}</p>
+                      <p className="text-zinc-300 mt-1">{message.content}</p>
+                      <p className="text-zinc-600 text-xs mt-2">{new Date(message.createdAt).toLocaleString('id-ID')}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      {!message.read && (
+                        <button onClick={() => markMessageRead(message.id)} className="p-2 rounded-lg bg-zinc-700 text-white hover:bg-zinc-600 transition-colors">
+                          <Check className="w-4 h-4" />
                         </button>
-                      </div>
+                      )}
+                      <button onClick={() => deleteMessage(message.id)} className="p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors">
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
-                ))
-              ) : (
+                </div>
+              )) : (
                 <div className="text-center py-12">
                   <MessageSquare className="w-16 h-16 text-zinc-700 mx-auto mb-4" />
                   <p className="text-zinc-500">Belum ada pesan</p>
@@ -304,20 +293,11 @@ export function OrdersPanel({ onClose }: OrdersPanelProps) {
       {/* Image modal */}
       <AnimatePresence>
         {selectedImage && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-60 flex items-center justify-center bg-black/90"
-            onClick={() => setSelectedImage(null)}
-          >
-            <Image
-              src={selectedImage}
-              alt="Bukti transfer"
-              width={500}
-              height={500}
-              className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg"
-            />
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90"
+            onClick={() => setSelectedImage(null)}>
+            <Image src={selectedImage} alt="Bukti transfer" width={500} height={500}
+              className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg" />
           </motion.div>
         )}
       </AnimatePresence>
