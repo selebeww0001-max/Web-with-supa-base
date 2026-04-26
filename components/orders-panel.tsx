@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useStore } from '@/lib/store'
 import { X, Check, XCircle, Clock, ExternalLink, MessageSquare } from 'lucide-react'
@@ -11,14 +11,19 @@ interface OrdersPanelProps {
 }
 
 export function OrdersPanel({ onClose }: OrdersPanelProps) {
-  const { orders, updateOrderStatus, messages, markMessageRead, deleteMessage } = useStore()
+  const { orders, updateOrderStatus, messages, markMessageRead, deleteMessage, fetchAll } = useStore()
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    fetchAll()
+  }, [])
   const [activeTab, setActiveTab] = useState<'orders' | 'messages'>('orders')
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [rejectingOrderId, setRejectingOrderId] = useState<string | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
 
-  const pendingOrders = orders.filter(o => o.status === 'pending')
-  const processedOrders = orders.filter(o => o.status !== 'pending')
+  const pendingOrders = orders.filter(o => o.status === 'pending').slice(0, 50)
+  const processedOrders = orders.filter(o => o.status !== 'pending').slice(0, 50)
   const unreadMessages = messages.filter(m => !m.read)
 
   const handleReject = async (orderId: string) => {
@@ -55,6 +60,11 @@ export function OrdersPanel({ onClose }: OrdersPanelProps) {
           </button>
         </div>
 
+        {error && (
+          <div className="px-6 py-2 bg-red-500/20 border-b border-red-500/30">
+            <p className="text-red-400 text-sm">{error}</p>
+          </div>
+        )}
         {/* Tabs */}
         <div className="flex border-b border-zinc-800 bg-zinc-900/50">
           <button
@@ -116,7 +126,7 @@ export function OrdersPanel({ onClose }: OrdersPanelProps) {
                           {rejectingOrderId !== order.id && (
                             <div className="flex gap-2">
                               <button
-                                onClick={() => { updateOrderStatus(order.id, 'approved') }}
+                                onClick={async () => { try { await updateOrderStatus(order.id, 'approved') } catch { setError('Gagal approve, coba lagi') } }}
                                 className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors"
                                 title="Approve"
                               >
