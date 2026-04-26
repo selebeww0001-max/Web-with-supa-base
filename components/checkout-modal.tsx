@@ -108,6 +108,7 @@ export function CheckoutModal({ product, onClose }: CheckoutModalProps) {
   const [ffError, setFfError] = useState('')
   const [selectedPackage, setSelectedPackage] = useState<typeof FF_PACKAGES[0] | null>(null)
   const [ffVersion, setFfVersion] = useState<'ff' | 'ffmax'>('ff')
+  const [packageCategory, setPackageCategory] = useState<'diamond' | 'membership' | null>(null)
 
   // Regular payment state
   const [selectedPayment, setSelectedPayment] = useState<typeof paymentMethods[0] | null>(null)
@@ -365,35 +366,86 @@ export function CheckoutModal({ product, onClose }: CheckoutModalProps) {
               {step === 'select_package' && (
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-white font-semibold">Pilih Paket Diamond</h3>
-                    <button onClick={() => setStep('ff_id')} className="text-zinc-500 text-sm hover:text-zinc-300">← Ganti ID</button>
+                    <h3 className="text-white font-semibold">Pilih Paket</h3>
+                    <button onClick={() => { setStep('ff_id'); setPackageCategory(null); setSelectedPackage(null) }} className="text-zinc-500 text-sm hover:text-zinc-300">← Ganti ID</button>
                   </div>
 
                   <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800">
-                    <p className="text-zinc-400 text-xs">Player: <span className="text-white font-bold">{ffName}</span></p>
-                    <p className="text-zinc-400 text-xs">ID: {ffId}</p>
+                    <p className="text-zinc-400 text-xs">ID: <span className="text-white font-bold">{ffId}</span></p>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2">
-                    {(ffVersion === 'ffmax' ? FFMAX_PACKAGES : FF_PACKAGES).map((pkg) => (
-                      <button key={pkg.code} onClick={() => setSelectedPackage(pkg)}
-                        className={`p-3 rounded-xl border text-center transition-all ${
-                          selectedPackage?.code === pkg.code
-                            ? 'border-white bg-zinc-800 shadow-lg shadow-white/10'
-                            : 'border-zinc-800 bg-zinc-900 hover:border-zinc-600'
-                        }`}>
-                        <p className="text-white font-bold text-sm">{pkg.diamonds > 0 ? '💎' : '🎫'}</p>
-                        <p className="text-white text-xs font-semibold mt-1">{pkg.label}</p>
-                        <p className="text-green-400 text-xs font-bold mt-0.5">Rp {Math.ceil(pkg.price * MARKUP).toLocaleString('id-ID')}</p>
+                  {/* Kategori paket */}
+                  {!packageCategory && (
+                    <div className="space-y-3">
+                      <p className="text-zinc-400 text-sm">Pilih kategori:</p>
+                      <button onClick={() => setPackageCategory('diamond')}
+                        className="w-full py-5 px-6 rounded-xl border border-zinc-700 bg-zinc-900 hover:border-white hover:bg-zinc-800 transition-all text-left">
+                        <p className="text-white font-bold text-lg tracking-widest truncate">💎 DIAMOND</p>
+                        <p className="text-zinc-500 text-xs mt-1">Top up diamond langsung ke akun FF</p>
                       </button>
-                    ))}
-                  </div>
+                      <button onClick={() => setPackageCategory('membership')}
+                        className="w-full py-5 px-6 rounded-xl border border-zinc-700 bg-zinc-900 hover:border-white hover:bg-zinc-800 transition-all text-left">
+                        <p className="text-white font-bold text-lg tracking-widest truncate">🎫 MEMBERSHIP CARD</p>
+                        <p className="text-zinc-500 text-xs mt-1">Level Up Pass, Member Mingguan & Bulanan</p>
+                      </button>
+                    </div>
+                  )}
 
-                  <button onClick={() => selectedPackage && generateQRIS(selectedPackage)}
-                    disabled={!selectedPackage || generatingQris}
-                    className="w-full py-4 rounded-xl bg-white text-black font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-zinc-200 transition-colors flex items-center justify-center gap-2">
-                    {generatingQris ? <><Loader2 className="w-4 h-4 animate-spin" /> Membuat QRIS...</> : '⚡ Bayar Sekarang'}
-                  </button>
+                  {/* List paket Diamond */}
+                  {packageCategory === 'diamond' && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-white font-semibold">💎 Diamond</p>
+                        <button onClick={() => { setPackageCategory(null); setSelectedPackage(null) }} className="text-zinc-500 text-xs hover:text-zinc-300">← Kategori</button>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {(ffVersion === 'ffmax' ? FFMAX_PACKAGES : FF_PACKAGES).filter(p => p.diamonds > 0).map((pkg) => (
+                          <button key={pkg.code} onClick={() => setSelectedPackage(pkg)}
+                            className={`p-3 rounded-xl border text-center transition-all ${
+                              selectedPackage?.code === pkg.code
+                                ? 'border-white bg-zinc-800 shadow-lg shadow-white/10'
+                                : 'border-zinc-800 bg-zinc-900 hover:border-zinc-600'
+                            }`}>
+                            <p className="text-white text-xs font-bold">💎 {pkg.label}</p>
+                            <p className="text-green-400 text-xs mt-1">Rp {Math.ceil(pkg.price * MARKUP).toLocaleString('id-ID')}</p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* List paket Membership */}
+                  {packageCategory === 'membership' && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-white font-semibold">🎫 Membership Card</p>
+                        <button onClick={() => { setPackageCategory(null); setSelectedPackage(null) }} className="text-zinc-500 text-xs hover:text-zinc-300">← Kategori</button>
+                      </div>
+                      <div className="space-y-2">
+                        {(ffVersion === 'ffmax' ? FFMAX_PACKAGES : FF_PACKAGES).filter(p => p.diamonds === 0).map((pkg) => (
+                          <button key={pkg.code} onClick={() => setSelectedPackage(pkg)}
+                            className={`w-full p-4 rounded-xl border text-left transition-all ${
+                              selectedPackage?.code === pkg.code
+                                ? 'border-white bg-zinc-800'
+                                : 'border-zinc-800 bg-zinc-900 hover:border-zinc-600'
+                            }`}>
+                            <div className="flex items-center justify-between">
+                              <p className="text-white font-semibold text-sm truncate">{pkg.label}</p>
+                              <p className="text-green-400 text-sm font-bold ml-2 flex-shrink-0">Rp {Math.ceil(pkg.price * MARKUP).toLocaleString('id-ID')}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedPackage && (
+                    <button onClick={() => generateQRIS(selectedPackage)}
+                      disabled={generatingQris}
+                      className="w-full py-4 rounded-xl bg-white text-black font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-zinc-200 transition-colors flex items-center justify-center gap-2">
+                      {generatingQris ? <><Loader2 className="w-4 h-4 animate-spin" /> Membuat QRIS...</> : `⚡ Bayar ${selectedPackage.label} - Rp ${Math.ceil(selectedPackage.price * MARKUP).toLocaleString('id-ID')}`}
+                    </button>
+                  )}
                 </motion.div>
               )}
 
