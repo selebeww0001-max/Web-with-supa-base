@@ -76,6 +76,9 @@ export function ModeratorPanel({ onClose, defaultCategoryId = '' }: ModeratorPan
       setProductForm({ name: '', price: 0, image: '', stock: '', description: '', categoryId: '', productType: 'regular', vipaymentCode: '' })
       setEditingProduct(null)
       setIsAdding(false)
+      alert('✅ Berhasil disimpan!')
+    } catch (e) {
+      alert('❌ Gagal simpan: ' + String(e))
     } finally { setSaving(false) }
   }
 
