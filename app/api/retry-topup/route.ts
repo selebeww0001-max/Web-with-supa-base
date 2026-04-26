@@ -15,15 +15,15 @@ function generateSignature() {
 }
 
 export async function GET(req: NextRequest) {
+  // Ambil semua order FF yang sudah dibayar (pakasir_status=completed) tapi topup belum success
   const { data: orders } = await supabase
     .from('orders')
     .select('*')
     .eq('pakasir_status', 'completed')
-    .eq('topup_status', 'failed')
-    .eq('status', 'approved')
+    .in('topup_status', ['pending', 'failed', 'processing'])
 
   if (!orders || orders.length === 0) {
-    return NextResponse.json({ ok: true, message: 'No failed orders' })
+    return NextResponse.json({ ok: true, message: 'No pending orders to process' })
   }
 
   const results = []
@@ -36,7 +36,18 @@ export async function GET(req: NextRequest) {
         .eq('id', order.product_id)
         .single()
 
-      if (!product || product.product_type !== 'topup_ff') continue
+      if (!product || product.product_type !== 'topup_ff') {
+        // Bukan produk FF, skip
+        continue
+      }
+
+      // Ambil kode vipayment dari order atau produk
+      const vipaymentCode = order.vipayment_code || product.vipayment_code
+
+      if (!vipaymentCode) {
+        results.push({ orderId: order.id, success: false, reason: 'No vipayment code' })
+        continue
+      }
 
       const topupRes = await fetch('https://api.vip-reseller.co.id/api/game/top-up', {
         method: 'POST',
@@ -44,7 +55,7 @@ export async function GET(req: NextRequest) {
         body: JSON.stringify({
           member_id: MEMBER_ID,
           signature: generateSignature(),
-          service: order.vipayment_code || product.vipayment_code,
+          service: vipaymentCode,
           data_no: order.ff_id,
           data_zone: order.ff_zone || '',
           order_id: `RETRY-${order.id}-${Date.now()}`,
@@ -57,15 +68,18 @@ export async function GET(req: NextRequest) {
 
       await supabase
         .from('orders')
-        .update({ topup_status: success ? 'success' : 'failed' })
+        .update({ 
+          topup_status: success ? 'success' : 'failed',
+          status: 'approved'
+        })
         .eq('id', order.id)
 
-      results.push({ orderId: order.id, success })
-    } catch {
-      results.push({ orderId: order.id, success: false })
+      results.push({ orderId: order.id, success, response: topupData })
+    } catch (e) {
+      results.push({ orderId: order.id, success: false, reason: String(e) })
     }
   }
 
-  return NextResponse.json({ ok: true, retried: results.length, results })
+  return NextResponse.json({ ok: true, processed: results.length, results })
 }
 
